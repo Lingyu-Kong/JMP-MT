@@ -662,7 +662,9 @@ class GemNetOCBackbone(nn.Module):
             quad_idx,
         )
 
-    def forward(self, data: BaseData):
+    def forward(
+        self, data: BaseData, return_intermediate: bool = False
+    ) -> GOCBackboneOutput:
         pos = data.pos
         # batch = data.batch
         atomic_numbers = data.atomic_numbers.long()
@@ -711,6 +713,12 @@ class GemNetOCBackbone(nn.Module):
         # (nAtoms, emb_size_atom), (nEdges, emb_size_edge)
         xs_E, xs_F = [x_E], [x_F]
 
+        if return_intermediate:
+            intermediate = {
+                "node_emb": x_E.clone(),
+                "edge_emb": x_F.clone(),
+            }
+
         for i in range(self.num_blocks):
             if self.hparams.unique_basis_per_layer:
                 bases: BasesOutput = self.per_layer_bases[i](
@@ -753,6 +761,14 @@ class GemNetOCBackbone(nn.Module):
             xs_E.append(x_E)
             xs_F.append(x_F)
 
+            if return_intermediate:
+                intermediate[f"node_attr_{i}"] = x_E.clone()
+                intermediate[f"edge_attr_{i}"] = x_F.clone()
+                
+        for i in range(self.num_blocks, len(self.int_blocks)):
+            xs_E.append(torch.zeros_like(xs_E[0], device=xs_E[0].device))
+            xs_F.append(torch.zeros_like(xs_F[0], device=xs_F[0].device))
+
         # Global output block for final predictions
         if self.regress_forces:
             assert self.direct_forces, "Only direct forces are supported for now."
@@ -769,6 +785,10 @@ class GemNetOCBackbone(nn.Module):
         else:
             x_E = None
 
+        if return_intermediate:
+            intermediate["node_attr_final"] = x_E.clone()
+            intermediate["edge_attr_final"] = x_F.clone()
+        
         out: GOCBackboneOutput = {
             "energy": x_E,
             "forces": x_F,
@@ -777,7 +797,10 @@ class GemNetOCBackbone(nn.Module):
             "idx_s": idx_s,
             "idx_t": idx_t,
         }
-        return out
+        if return_intermediate:
+            return out, intermediate
+        else:
+            return out
 
     def load_backbone_state_dict(self, state_dict: dict[str, Any]):
         # Dump any state that is not backbone or embedding related.
@@ -816,7 +839,6 @@ class GemNetOCBackbone(nn.Module):
     @classmethod
     def from_pretrained_ckpt(cls, path: str | Path):
         ckpt = torch.load(path, map_location="cpu")
-
         config: dict[str, Any] = ckpt["hyper_parameters"]["backbone"]
         # Patch the paths
         if (

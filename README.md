@@ -22,8 +22,11 @@ conda install -y -c conda-forge -c pytorch -c nvidia -c pyg \
 pip install rich lmdb ase pymatgen matbench-discovery beartype jaxtyping e3nn
 ```
 
-And then clone this repo and run:
+And then clone this repo and install by:
 
 ```bash
+git clone https://github.com/nimashoghi/jmp-backbone.git
+cd jmp-backbone
+git checkout lingyu-grad
 pip install -e .
 ```

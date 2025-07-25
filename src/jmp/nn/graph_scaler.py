@@ -22,7 +22,7 @@ class GraphScalarTargetConfig(TargetConfigBase):
     reduction: Literal["mean", "sum", "max"] = "mean"
     """The reduction to use for the output."""
 
-    num_mlps: int = 1
+    num_mlps: int = 5
     """Number of MLPs in the output layer."""
 
     def create_model(

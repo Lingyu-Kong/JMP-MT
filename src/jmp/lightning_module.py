@@ -77,10 +77,10 @@ class SeparateLRMultiplierConfig(C.Config):
 
 
 class OptimizationConfig(C.Config):
-    optimizer: nt.configs.OptimizerConfig
+    optimizer: nt.config.OptimizerConfig
     """Optimizer configuration."""
 
-    lr_scheduler: nt.configs.LRSchedulerConfig | None
+    lr_scheduler: nt.config.LRSchedulerConfig | None
     """Learning rate scheduler configuration."""
 
     separate_lr_multiplier: SeparateLRMultiplierConfig | None = None
@@ -525,3 +525,24 @@ class Module(nt.LightningModuleBase[Config]):
         model = cls(hparams)
         model.load_state_dict(ckpt["state_dict"])
         return model
+
+    @classmethod
+    def load_pretrained(
+        cls,
+        path: Path,
+    ):
+        from .models.gemnet.backbone import BackboneConfig, GemNetOCBackbone
+        from .nn.energy_head import EnergyOutputHead, EnergyTargetConfig
+        from .nn.force_head import ForceOutputHead, ForceTargetConfig
+        from .nn.stress_head import StressOutputHead, StressTargetConfig
+
+        ckpt = torch.load(path, map_location="cpu")
+
+        print(ckpt["hyper_parameters"]["output"].keys())
+        exit()
+        # Load Energy head
+        energy_config = EnergyTargetConfig.model_validate(
+            ckpt["hyper_parameters"]["energy_head"]
+        )
+
+        return backbone

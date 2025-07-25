@@ -30,7 +30,7 @@ class EnergyTargetConfig(TargetConfigBase):
     edge_level_energies: bool = False
     """Whether to use edge level energies."""
 
-    num_mlps: int = 1
+    num_mlps: int = 5
     """Number of MLPs in the output layer."""
 
     def create_model(
@@ -91,7 +91,7 @@ class EnergyOutputHead(OutputHeadBase):
             nn.init.ones_(self.pairwise_scales.weight)
 
     @override
-    def forward(self, input: OutputHeadInput) -> torch.Tensor:
+    def forward(self, input: OutputHeadInput, return_per_atom_energy: bool=False) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         data = input["data"]
         backbone_output = input["backbone_output"]
 
@@ -156,6 +156,8 @@ class EnergyOutputHead(OutputHeadBase):
         tc.tassert(tc.Float[torch.Tensor, "b 1"], per_system_energies)
 
         per_system_energies = rearrange(per_system_energies, "b 1 -> b")
+        if return_per_atom_energy:
+            return per_system_energies, per_atom_energies
         return per_system_energies
 
     @override
