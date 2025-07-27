@@ -861,6 +861,9 @@ class GemNetOCBackbone(nn.Module):
             raise ValueError(f"Unknown scale file: {config['scale_file']}")
 
         # Create the BackboneConfig
+        valid_fields = BackboneConfig.model_fields.keys()
+        filtered_config = {k: v for k, v in config.items() if k in valid_fields}
+        config = filtered_config
         backbone_config = BackboneConfig.model_validate(config)
 
         # Create the model
